@@ -1,6 +1,7 @@
 # Motor-Imagery-App-Project
 
 Link to the BCI Competition dataset: https://drive.google.com/file/d/12bw_ewZm1DGLCtbbr88OML51A8_ygRtQ/view?usp=sharing
+
 Link to in-house dataset(10Train5Test): https://drive.google.com/file/d/1XkGDozON49P6qX6wPjRWf-ezm4WcXNhH/view?usp=sharing
   (use your UCSD email to download)
 
