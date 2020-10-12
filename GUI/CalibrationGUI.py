@@ -13,13 +13,16 @@ import time
 import numpy as np
 
 # Trials
-num_trials = 3
+num_trials = 15
+a0 = [0]*3
+
 a1 = [1]*num_trials
 a2 = [2]*num_trials
 a3 = [3]*num_trials
 a4 = [4]*num_trials
 a_123 = a1 + a2 + a3 + a4
 random.shuffle(a_123)
+a_123 = a0 + a_123
 
 # Fonts
 LARGE_FONT= ("Verdana", 12)

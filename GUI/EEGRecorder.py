@@ -10,7 +10,7 @@ import atexit
 
 SCALE_FACTOR_EEG = (4500000)/24/(2**23-1) #uV/count
 DEFAULT_FS = 250
-CYTON_CHANNELS = [4, 5, 6, 7]
+CYTON_CHANNELS = [1, 2, 3, 4, 5, 6, 7]
 
 LIVE_DATA = False
 
