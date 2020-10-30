@@ -7,8 +7,10 @@ import scipy.signal as signal # For filtering
 from neurodsp.spectral import compute_spectrum # for smoothed PSD computation
 
 
+eeg_fs = 250 # Data was recorded at 250 Hz
+
 # Filter eeg // does perform well on short signals, possibly because of padding
-def filterEEG(eeg_data, fs=250, f_range=(1, 50)):
+def filterEEG(eeg_data, fs=eeg_fs, f_range=(1, 50)):
     sig_filt = filt.filter_signal(eeg_data, fs, 'bandpass', f_range, filter_type='iir', butterworth_order=2)
     test_sig_filt = filt.filter_signal(sig_filt, fs, 'bandstop', (58, 62), n_seconds=1)
     num_nans = sum(np.isnan(test_sig_filt))
@@ -18,7 +20,7 @@ def filterEEG(eeg_data, fs=250, f_range=(1, 50)):
     return sig_filt
 
 from scipy.signal import butter, sosfiltfilt, sosfreqz  # for filtering
-def bandpass_bandstop_filter(data,fs=250, lowcut=1, highcut=50, order = 2):
+def bandpass_bandstop_filter(data,fs=eeg_fs, lowcut=1, highcut=50, order = 2):
     nyq = 0.5 * fs
     low = lowcut / nyq
     high = highcut / nyq
@@ -63,22 +65,22 @@ def getDF(epochs, labels, times, chans):
     return pd.DataFrame(data_dict)
 
 # PSD plotting
-def plotPSD(freq, psd, fs=250, pre_cut_off_freq=0, post_cut_off_freq=120, label=None):
+def plotPSD(freq, psd, fs=eeg_fs, pre_cut_off_freq=0, post_cut_off_freq=120, label=None):
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('log(PSD)')
     pre_cut = int(len(freq)*(pre_cut_off_freq / freq[-1]))
     post_cut = int(len(freq)*(post_cut_off_freq / freq[-1]))
     plt.plot(freq[pre_cut:post_cut], np.log(psd[pre_cut:post_cut]), label=label)
 
-def getFreqPSDFromEEG(eeg_data, fs=250):
+def getFreqPSDFromEEG(eeg_data, fs=eeg_fs):
     freq, psd = signal.periodogram(eeg_data, fs=int(fs), scaling='spectrum')
     return freq, psd
 
-def getMeanFreqPSD(eeg_data, fs=250):
+def getMeanFreqPSD(eeg_data, fs=eeg_fs):
     freq_mean, psd_mean = compute_spectrum(eeg_data, fs, method='welch', avg_type='mean', nperseg=fs*2)
     return freq_mean, psd_mean
 
 # Plot PSD from EEG data 
-def plotPSD_fromEEG(eeg_data, fs=250, pre_cut_off_freq=0, post_cut_off_freq=120, label=None):
-    freq, psd = signal.periodogram(eeg_data, fs=int(fs), scaling='spectrum')
+def plotPSD_fromEEG(eeg_data, fs=eeg_fs, pre_cut_off_freq=0, post_cut_off_freq=120, label=None):
+    freq, psd = getMeanFreqPSD(eeg_data, fs=fs) 
     plotPSD(freq, psd, fs, pre_cut_off_freq, post_cut_off_freq, label)
