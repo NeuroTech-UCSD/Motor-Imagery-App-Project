@@ -753,7 +753,7 @@ class TrainingPrompt(tk.Frame):
         return
 
     def try_training(self):
-        if self.controller.current_frame == self and can_train:
+        if self.controller.current_frame == self and self.can_train:
             self.train_model()
         self.label.after(500, self.try_training)
 
