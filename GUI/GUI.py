@@ -498,7 +498,6 @@ class SessionViewer(tk.Frame): # Currently for feedback
 
 class SessionPrompt(tk.Frame):
 
-    #When start button gets clicked everything gets initalized
     def __init__(self, parent, controller, session = None):
         tk.Frame.__init__(self, parent)
         
@@ -745,9 +744,20 @@ class TrainingPrompt(tk.Frame):
         button = ttk.Button(self, text="NeuroFeedback",
                             command=lambda: controller.show_frame(FeedbackPrompt))
         button.pack()
+        self.session = session 
+        self.controller = controller
+        self.can_train = True
+        self.label.after(500, self.try_training)
 
     def show(self):
         return
+
+    def try_training(self):
+        if self.controller.current_frame == self and can_train:
+            self.train_model()
+        self.label.after(500, self.try_training)
+
+
     def train_model(self):
         ## Loading data
         eeg_filename = "./data/eeg_data.csv"
@@ -825,7 +835,8 @@ class TrainingPrompt(tk.Frame):
 
         with open(Pkl_Filename, 'wb') as file:  
             pickle.dump(power_bin_model, file)
-        return
+        
+        self.can_train = False
 
         
 
