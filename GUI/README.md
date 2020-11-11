@@ -1,8 +1,8 @@
-# Calibration GUI
-Motor Imagery Prompts for Left, Right, Foot, and Idle. 
+# GUI
+Motor Imagery Prompts for Left and Right, Model Training, NeuroFeedback, and Data Viewer
 
 ## USAGE
-python CalibrationGUI.py 
+python GUI.py 
 - make sure to change LIVE_DATA in EEGRecorder to false if not recording EEG
 - make sure to have a ./data/ folder created
 
