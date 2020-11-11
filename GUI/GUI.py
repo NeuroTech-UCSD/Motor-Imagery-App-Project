@@ -738,8 +738,8 @@ class TrainingPrompt(tk.Frame):
     def __init__(self, parent, controller, session = None):
         tk.Frame.__init__(self, parent)
 
-        label = tk.Label(self, text="Training...", font=BOLD_FONT)
-        label.pack(pady=10,padx=10)
+        self.label = tk.Label(self, text="Training...", font=BOLD_FONT)
+        self.label.pack(pady=10,padx=10)
 
         button = ttk.Button(self, text="NeuroFeedback",
                             command=lambda: controller.show_frame(FeedbackPrompt))
