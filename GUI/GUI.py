@@ -48,6 +48,9 @@ a2 = [2]*num_trials
 # a4 = [4]*num_trials
 a_123 = a1 + a2
 
+# Prediction Probability for slide bar
+slide_proba = 0.5
+
 # shuffle
 random.shuffle(a_123)
 
@@ -92,6 +95,7 @@ class FrameContainer(tk.Tk):
         container.grid_columnconfigure(0, weight=1)
 
         self.frames = {}
+        self.slide_proba = 0.5
 
         with open(Pkl_Filename, 'rb') as file:
             self.model = pickle.load(file) #load the classification model
@@ -238,6 +242,7 @@ class DataViewer(tk.Frame):
 
         xList = self.x_values
         yList = np.flip(self.eeg_sampler.getPredictionValues().T[100:len(xList) + 100])
+        self.controller.slide_proba = yList[-1] # slide_proba is the globa variable controlling the location of the slide bar
         self.__plotMultilines(self.average_pred_plot, xList, [yList])
 
 
@@ -624,8 +629,10 @@ class FeedbackPrompt(tk.Frame):
         self.canvas.delete('all')
         # Write elements to render here
         if self.render_cross == True:
+            bar_loc = self.controller.slide_proba * 240
             self.canvas.create_line(1000/2-150+30, 250, 1000/2+150-30, 250, width = 4)
             self.canvas.create_line(500, 150+30, 500, 350-30, width = 4, dash=(4, 4))
+            self.canvas.create_polygon([492-120+bar_loc, 290, 492-120+bar_loc, 210, 508-120+bar_loc, 210, 508-120+bar_loc, 290], fill='grey', tags='slide-bar')
         self.canvas.after(50, self.render)
 
     ###################
