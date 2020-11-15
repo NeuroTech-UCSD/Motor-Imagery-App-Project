@@ -1,8 +1,8 @@
 # Project Specific # 
 ####################
 /.ipynb_checkpoints
+/GUI/__pycache__
 /__pycache__
-
 
 # Compiled source #
 ###################
