@@ -11,7 +11,7 @@ from DataProcessingHelper import filterEEG
 import atexit
 
 
-SCALE_FACTOR_EEG = (4500000)/24/(2**23-1) #uV/count
+SCALE_FACTOR_EEG = (4500000)/24/(2**23-1) # uV/count
 
 DEFAULT_PREDICTION_WINDOW_SECONDS = 4 # Window in seconds needed for prediction
 DEFAULT_UPDATE_SECONDS = 0.5 # Number of seconds to wait before updating prediction values
@@ -36,6 +36,10 @@ class EEGSampler:
         
         self.live = live
         self.model = model
+        if model is not None: 
+            self.classes = list(self.model.model.classes_)
+            self.index_of_left = self.classes.index(1)
+            print("classes", self.classes)
 
         # If generating artificial data, this will cap the # of seconds we get artificial data to prevent while(true) runaways
         self.seconds_to_gather_artificial_data = 600 
@@ -62,6 +66,9 @@ class EEGSampler:
             Allows for the model to be updated
         '''
         self.model = model
+        self.classes = list(self.model.model.classes_)
+        self.index_of_left = self.classes.index(1)
+        print("classes", self.classes)
 
     def startStream(self) :
         print("start streaming called")
@@ -123,11 +130,13 @@ class EEGSampler:
             self.buffer[:self.count_samples, i] = filterEEG(self.dc_removed_buffer[:self.count_samples, i], self.fs, (0.5, 50))
 
     def __update_prediction_buffer(self):
-        # Take a 4 second window 2 seconds away from the end of the buffer to reduce edge effects
+        # Take a 4 second window timepoints_to_chop timepoints away from the end of the buffer to reduce edge effects
         data = np.transpose(self.buffer[self.timepoints_to_chop : self.prediction_seconds * self.fs + self.timepoints_to_chop])
         
         prediction = self.model.predict_proba(np.array([data]))[0]
-        self.pred_values[0] = prediction[0] # use the left probability as the prediction value
+        print("prediction: ", prediction)
+        prediction = prediction[self.index_of_left]
+        self.pred_values[0] = prediction 
         
         self.pred_values_average = np.roll(self.pred_values_average, 1, 0) 
         # Update average values
@@ -156,8 +165,6 @@ class EEGSampler:
         self.pred_values_average = np.roll(self.pred_values_average, 1, 0)
         for i, chan in enumerate(self.channels):
             self.raw_buffer[0, i] = raw_eeg_data[i]
-            # if self.raw_buffer[0, i] == 0 : 
-            #     continue
             if self.to_clean:  
                 self.dc_removed_buffer[0, i] = self.raw_buffer[0,i] - self.mean[i]
                 self.buffer[0, i] = self.dc_removed_buffer[0, i]
@@ -172,7 +179,7 @@ class EEGSampler:
         if (now - self.last_updated) > self.update_seconds :
             self.last_updated = now
 
-            # Only predict once we've reached the number of samples we need in the buffer (i.e. at least 5 seconds)
+            # Only predict once we've reached the number of samples we need in the buffer
             if (self.count_samples > self.prediction_seconds * self.fs + self.timepoints_to_chop): 
                 if (self.to_clean):
                     self.__filter_eeg()

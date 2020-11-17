@@ -45,29 +45,26 @@ from sklearn.metrics import classification_report
 # Constants 
 ###############################################################################
 
+# Recording Settings 
+LIVE_DATA = False ## Change this to true if running with live data
+CHANNELS_USED = [4, 5, 6, 7] # Corresponding to the pins used on the Cyton
+
 # Calibration Trials
-num_trials = 10  #change this for testing purposes
+num_trials = 1  # Increase num_trials to 10 or more for live runs. Set to a low number if testing with random data
 a1 = [1]*num_trials
 a2 = [2]*num_trials
 a_123 = a1 + a2
-
-# Shuffle trial order
 random.shuffle(a_123)
 
 # Neurofeedback Trials 
-feedback_num_trials = 3
+feedback_num_trials = 2
 f1 = [1]*feedback_num_trials
 f2 = [2]*feedback_num_trials
 f_12 = f1 + f2
 random.shuffle(f_12)
 
-# Prediction Probability for slide bar
-slide_proba = 0.5
-
 # Fonts
-LARGE_FONT= ("Verdana", 12)
 BOLD_FONT= ("Verdana", 12, 'bold')
-UNDERLINE_FONT = ("Verdana", 12, 'underline')
 
 # Filenames
 BEEP_FILENAME = './audio/a.mp3'
@@ -76,10 +73,6 @@ PRE_RECORDED_EVENT_OUTPUT_FILENAME = "./data/event_data 15_motorvis.csv"
 LIVE_EEG_OUTPUT_FILENAME = "./data/eeg_data.csv"
 LIVE_EVENT_OUTPUT_FILENAME = "./data/event_data.csv"
 Pkl_Filename = "PowerBinModel.pkl"
-
-# Recording Settings 
-LIVE_DATA = False ## CHANGE THIS TO TRUE IF USING OPENBCI HEADSET
-CHANNELS_USED = [4, 5, 6, 7] # Corresponding to the pins used on the Cyton
 
 # Trial timing
 START_REST_TIME = 1000 
@@ -104,10 +97,10 @@ class FrameContainer(tk.Tk):
         container.grid_columnconfigure(0, weight=1)
 
         self.frames = {}
-        self.slide_proba = 0.5
+        self.slide_proba = 0.5 # Initialize slider to the center
 
         with open(Pkl_Filename, 'rb') as file:
-            self.model = pickle.load(file) #load the classification model
+            self.model = pickle.load(file) # Load the classification model
         self.eeg_sampler = EEGSampler(LIVE_DATA, channels=CHANNELS_USED, model=self.model)
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -142,7 +135,7 @@ class FrameContainer(tk.Tk):
         frame.show()
         self.current_frame = frame
     def on_closing(self) :
-        self.eeg_sampler.end() # Need to explicitly stop the eeg sampler for some unknown reason XD TODO
+        self.eeg_sampler.end() # Need to explicitly stop the eeg sampler
         self.destroy()
 
 class StartPage(tk.Frame):
@@ -276,7 +269,6 @@ class CalibrationPrompt(tk.Frame):
         # Initialize arrows dimensions
         self.left_arrowhead = [150+120, 250, 230+120, 300, 230+120, 200]
         self.right_arrowhead = [1000-150-120, 250, 1000-230-120, 300, 1000-230-120, 200]
-        self.foot_arrowhead = [500, 500-50, 450, 420-50, 550, 420-50]
         
         # Trial label
         self.label_trial = tk.Label(self, text = 'Trial: 1/' + str(len(self.trial_labels)),\
@@ -287,11 +279,6 @@ class CalibrationPrompt(tk.Frame):
         self.button_skip = None
         self.button_back = None
         self.button_train = None
-
-        #TODO: Open Monitor in a new window
-        # self.button_back = tk.Button(self, text="Monitor",
-        #                     command=lambda: self.controller.show_frame(SessionViewer))
-        # self.button_back.pack()
 
         # Load the beep noise
         pygame.mixer.init()
@@ -327,7 +314,6 @@ class CalibrationPrompt(tk.Frame):
             self.render_cross = True
             self.render_left = False
             self.render_right = False
-            self.render_foot = False
             self.last_event_start_recorded = -1
             self.last_event_end_recorded = -1
 
@@ -382,14 +368,8 @@ class CalibrationPrompt(tk.Frame):
                 if label == 1:
                     self.render_left = True
                     self.render_right = False
-                    self.render_foot = False
                 elif label == 2:
                     self.render_right = True
-                    self.render_left = False
-                    self.render_foot = False
-                elif label == 3:
-                    self.render_foot = True
-                    self.render_right = False
                     self.render_left = False
             elif self.trial_time >= ARROW_FINISH_TIME and self.trial_time < TRIAL_FINISH_TIME:
                 # Write event start data
@@ -400,7 +380,6 @@ class CalibrationPrompt(tk.Frame):
                 # Stop rendering arrow and compute random extra time between trials
                 self.render_left = False
                 self.render_right = False
-                self.render_foot = False
                 if self.extra_time_computed == False:
                     self.extra_time = random.randint(0,MAX_EXTRA_TIME)
                     self.extra_time_computed = True
@@ -424,7 +403,6 @@ class CalibrationPrompt(tk.Frame):
                     self.label_trial.config(text='Trials Completed! Please "Train Model" to continue')
             self.label_trial.after(125, self.update)
 
-    #Next steps: Get rid of left right down
     # Create green rectangles instead that sits on the horizonal line
     # shifting left and right (on the x-axis)
     # During period where arrow shown, have square shift left/right every 100 ms depending 
@@ -436,8 +414,6 @@ class CalibrationPrompt(tk.Frame):
                 self.canvas.create_polygon(self.left_arrowhead, fill='#1f1', tags='left')
             if self.render_right == True:
                 self.canvas.create_polygon(self.right_arrowhead, fill='#1f1', tags='right')
-            if self.render_foot == True:
-                self.canvas.create_polygon(self.foot_arrowhead, fill='#1f1', tags='foot')
             if self.render_cross == True:
                 self.canvas.create_line(1000/2-150+30, 250, 1000/2+150-30, 250, width = 4)
                 self.canvas.create_line(500, 150+30, 500, 350-30, width = 4, dash=(4, 4))
@@ -501,6 +477,7 @@ class TrainingPrompt(tk.Frame):
     def train_model(self):
 
         start_time = time.time()
+
         ## Loading data
         eeg_filename = LIVE_EEG_OUTPUT_FILENAME if LIVE_DATA else PRE_RECORDED_EEG_OUTPUT_FILENAME
         event_filename =  LIVE_EVENT_OUTPUT_FILENAME if LIVE_DATA else PRE_RECORDED_EVENT_OUTPUT_FILENAME
@@ -594,13 +571,7 @@ class FeedbackPrompt(tk.Frame):
         self.button_back = None
         self.button_use = None
         
-
-        #TODO: Open Monitor in a new window
-        # self.button_back = tk.Button(self, text="Monitor",
-        #                     command=lambda: self.controller.show_frame(SessionViewer))
-        # self.button_back.pack()
-        
-        # Load beep noises (if needed TODO: remove if not needed)
+        # Load beep noises 
         pygame.mixer.init()
         pygame.mixer.music.load(BEEP_FILENAME)
         
@@ -629,7 +600,7 @@ class FeedbackPrompt(tk.Frame):
             # Start sampling 
             self.eeg_sampler.startStream()
 
-            # Initialize some variables that may be helpful TODO: delete any that are not needed!
+            # Initialize some variables that may be helpful
             self.trial_index = 0
             self.trial_time = 0
             self.can_play = True
@@ -641,7 +612,7 @@ class FeedbackPrompt(tk.Frame):
 
             # Begin the update loops for timer and prompt
             self.counter = 28800 
-            self.slide_proba = 0.5
+            self.slide_proba = 0.5 # Initialize the slider to the center
             self.label_timer.after(100, self.update_label_timer)
             self.label_trial.after(5000, self.startUpdate)
             self.canvas.after(100, self.render)
@@ -712,7 +683,7 @@ class FeedbackPrompt(tk.Frame):
                     else :
                         self.label_trial.config(text='NeuroFeedback Completed! Please "Launch Google Maps" to continue')
 
-            self.slide_proba = self.eeg_sampler.getPredictionValue()
+            self.slide_proba = self.eeg_sampler.getPredictionValue() # Represents left probability
             self.label_timer.after(125, self.update)
 
     def useApp(self):
@@ -729,7 +700,7 @@ class FeedbackPrompt(tk.Frame):
         print("4")
         time.sleep(1)
         print("3")
-        click(600, 600)
+        click(600, 600) # Click the window to enable arrow key inputs
         time.sleep(1)
         print("2")
         time.sleep(1)
@@ -742,8 +713,7 @@ class FeedbackPrompt(tk.Frame):
 
     def sendCommands(self):
         if self.can_update:
-            self.slide_proba = (self.eeg_sampler.getPredictionValue() * 2) - 1
-            perform_google_maps_action(self.slide_proba)
+            perform_google_maps_action((1 - self.slide_proba) * 2 - 1)
             self.label_trial.after(250, self.sendCommands)
 
     def render(self):
@@ -755,7 +725,7 @@ class FeedbackPrompt(tk.Frame):
             if self.render_right == True:
                 self.canvas.create_polygon(self.right_arrowhead, fill='#1f1', tags='right')
             if self.render_cross == True:
-                bar_loc = self.slide_proba * 240
+                bar_loc = (1 - self.slide_proba) * 240 # Need to flip slide_proba to have a slider on the right correspond with high right proba
                 self.canvas.create_line(1000/2-150+30, 250, 1000/2+150-30, 250, width = 4)
                 self.canvas.create_line(500, 150+30, 500, 350-30, width = 4, dash=(4, 4))
                 self.canvas.create_polygon([492-120+bar_loc, 290, 492-120+bar_loc, 210, 508-120+bar_loc, 210, 508-120+bar_loc, 290], fill='grey', tags='slide-bar')

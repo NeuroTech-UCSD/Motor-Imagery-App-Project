@@ -27,7 +27,7 @@ class PowerBinModel(myModel):
         super().__init__()
         self.mod_types = [LogisticRegression, LinearDiscriminantAnalysis]
         self.mod_type = self.mod_types[0] 
-        self.binning = [1, 3, 5, 7, 9, 12, 20, 40] #[0.5, 4, 7, 12, 30]
+        self.binning = [1, 4, 7, 12, 30]
         self.intervals = getIntervals(self.binning)
         self.model = self.mod_type()
         self.scaler = StandardScaler()

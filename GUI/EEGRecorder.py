@@ -7,7 +7,7 @@ from datetime import datetime
 import threading
 import atexit
 
-SCALE_FACTOR_EEG = (4500000)/24/(2**23-1) #uV/count
+SCALE_FACTOR_EEG = (4500000)/24/(2**23-1) # uV/count
 DEFAULT_FS = 250
 DEFAULT_CHANNELS = [0, 1, 2, 3, 4, 5, 6, 7] # All 8 channels of cyton
 
