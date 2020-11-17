@@ -14,7 +14,4 @@ python GUI.py
 | N7P | C1 | Left-center channel |
 | N6P | C2 | Right-center channel  |
 | N5P | C4 | Right-most channel |
-| N4P | VEOG | Under left eye |
-| N3P | Left EMG | Left forearm |
-| N2P | Right EMG | Right forearm |
 | SRB | Earclip (left) | Reference |

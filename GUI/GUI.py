@@ -16,7 +16,11 @@ from tkinter import ttk
 # Data model save and loading, 
 import pickle
 import os
+
+# Misc 
 import pygame # For sound play
+import webbrowser # For opening Google Maps 
+from pyautogui import keyDown, keyUp, click # For controlling Google Maps
 
 # Our own functions
 from EEGSampler import EEGSampler
@@ -24,6 +28,7 @@ from EEGRecorder import EEGRecorder
 from CSVWriter import CSVWriter
 from DataProcessingHelper import * 
 from PowerBinModel import PowerBinModel
+from KeyPress import perform_google_maps_action
 
 # Timing and timers
 import time
@@ -40,19 +45,24 @@ from sklearn.metrics import classification_report
 # Constants 
 ###############################################################################
 
-# Trials
-num_trials = 1  #change this for testing purposes
+# Calibration Trials
+num_trials = 10  #change this for testing purposes
 a1 = [1]*num_trials
 a2 = [2]*num_trials
-# a3 = [3]*num_trials
-# a4 = [4]*num_trials
 a_123 = a1 + a2
+
+# Shuffle trial order
+random.shuffle(a_123)
+
+# Neurofeedback Trials 
+feedback_num_trials = 3
+f1 = [1]*feedback_num_trials
+f2 = [2]*feedback_num_trials
+f_12 = f1 + f2
+random.shuffle(f_12)
 
 # Prediction Probability for slide bar
 slide_proba = 0.5
-
-# shuffle
-random.shuffle(a_123)
 
 # Fonts
 LARGE_FONT= ("Verdana", 12)
@@ -61,14 +71,14 @@ UNDERLINE_FONT = ("Verdana", 12, 'underline')
 
 # Filenames
 BEEP_FILENAME = './audio/a.mp3'
-PRE_RECORDED_EEG_OUTPUT_FILENAME = "./data/eeg_data 15_motorvis.csv" ## TODO CHANGE PATH when pushing
-PRE_RECORDED_EVENT_OUTPUT_FILENAME = "./data/event_data 15_motorvis.csv" ## TODO CHANGE PATH when pushing
+PRE_RECORDED_EEG_OUTPUT_FILENAME = "./data/eeg_data 15_motorvis.csv" 
+PRE_RECORDED_EVENT_OUTPUT_FILENAME = "./data/event_data 15_motorvis.csv" 
 LIVE_EEG_OUTPUT_FILENAME = "./data/eeg_data.csv"
 LIVE_EVENT_OUTPUT_FILENAME = "./data/event_data.csv"
 Pkl_Filename = "PowerBinModel.pkl"
 
 # Recording Settings 
-LIVE_DATA = False
+LIVE_DATA = False ## CHANGE THIS TO TRUE IF USING OPENBCI HEADSET
 CHANNELS_USED = [4, 5, 6, 7] # Corresponding to the pins used on the Cyton
 
 # Trial timing
@@ -78,7 +88,6 @@ ARROW_FINISH_TIME = BEEP_FINISH_TIME + 1000 # 1s to show arrow
 TRIAL_FINISH_TIME = ARROW_FINISH_TIME + 4000 # 4s for actual trial
 TRIAL_BASEEXTRA_TIME = TRIAL_FINISH_TIME + 500 # 0.5s to finish trial
 MAX_EXTRA_TIME = 1000 # randomly give an extra 0 to MAX_EXTRA_TRIAL time between trials
-
 
 ###############################################################################
 # Classes for frames   
@@ -242,7 +251,6 @@ class DataViewer(tk.Frame):
 
         xList = self.x_values
         yList = np.flip(self.eeg_sampler.getPredictionValues().T[100:len(xList) + 100])
-        self.controller.slide_proba = yList[-1] # slide_proba is the globa variable controlling the location of the slide bar
         self.__plotMultilines(self.average_pred_plot, xList, [yList])
 
 
@@ -422,17 +430,18 @@ class CalibrationPrompt(tk.Frame):
     # During period where arrow shown, have square shift left/right every 100 ms depending 
     # on number of shift from random number generator 
     def render(self):
-        self.canvas.delete('all')
-        if self.render_left == True:
-            self.canvas.create_polygon(self.left_arrowhead, fill='#1f1', tags='left')
-        if self.render_right == True:
-            self.canvas.create_polygon(self.right_arrowhead, fill='#1f1', tags='right')
-        if self.render_foot == True:
-            self.canvas.create_polygon(self.foot_arrowhead, fill='#1f1', tags='foot')
-        if self.render_cross == True:
-            self.canvas.create_line(1000/2-150+30, 250, 1000/2+150-30, 250, width = 4)
-            self.canvas.create_line(500, 150+30, 500, 350-30, width = 4, dash=(4, 4))
-        self.canvas.after(50, self.render)
+        if self.can_update:
+            self.canvas.delete('all')
+            if self.render_left == True:
+                self.canvas.create_polygon(self.left_arrowhead, fill='#1f1', tags='left')
+            if self.render_right == True:
+                self.canvas.create_polygon(self.right_arrowhead, fill='#1f1', tags='right')
+            if self.render_foot == True:
+                self.canvas.create_polygon(self.foot_arrowhead, fill='#1f1', tags='foot')
+            if self.render_cross == True:
+                self.canvas.create_line(1000/2-150+30, 250, 1000/2+150-30, 250, width = 4)
+                self.canvas.create_line(500, 150+30, 500, 350-30, width = 4, dash=(4, 4))
+            self.canvas.after(50, self.render)
 
     
     ###################
@@ -562,20 +571,28 @@ class FeedbackPrompt(tk.Frame):
         self.label_timer = tk.Label(self, text = '', font=("Halvetica", 40))
         self.label_timer.pack()
 
+        # Create a static instructions label
+        self.instructions_label = tk.Label(self, text = '')
+        self.instructions_label.pack()
+
         # Create cross canvas
         self.canvas = tk.Canvas(self)
         self.canvas.pack(fill=tk.BOTH, expand=1)
+
+        # Initialize arrows dimensions
+        self.left_arrowhead = [150+120, 250, 230+120, 300, 230+120, 200]
+        self.right_arrowhead = [1000-150-120, 250, 1000-230-120, 300, 1000-230-120, 200]
+        
+        # Trial label
+        self.trial_labels = f_12
+        self.label_trial = tk.Label(self, text = 'Trial: 1/' + str(len(self.trial_labels)),\
+                    font=("Halvetica", 25))
+        self.label_trial.pack()
         
         # Create the control buttons
-        self.button_monitor = tk.Button(self, text="Stats Monitor",
-                            command=lambda: self.controller.show_frame(DataViewer))
-        self.button_monitor.pack()
-        self.button_back = tk.Button(self, text="Abort",
-                            command=self.abortAndGoToStart, fg='red')
-        self.button_back.pack()
-        
-        # Update
-        # the sequence of class labels for the session
+        self.button_monitor = None
+        self.button_back = None
+        self.button_use = None
         
 
         #TODO: Open Monitor in a new window
@@ -597,6 +614,18 @@ class FeedbackPrompt(tk.Frame):
         if not self.can_update: 
             self.can_update = True
 
+            self.instructions_label.config(text='Please wait for the beep to begin neurofeedback session (around 5 seconds)')
+            self.label_trial.config(text = 'Trial: 1/' + str(len(self.trial_labels)))
+            
+            # Create the control buttons
+            self.button_monitor = tk.Button(self, text="Stats Monitor",
+                                command=lambda: self.controller.show_frame(DataViewer))
+            self.button_monitor.pack()
+            self.button_back = tk.Button(self, text="Abort",
+                                command=self.abortAndGoToStart, fg='red')
+            self.button_back.pack()
+            self.button_use = None
+
             # Start sampling 
             self.eeg_sampler.startStream()
 
@@ -607,39 +636,143 @@ class FeedbackPrompt(tk.Frame):
             self.render_cross = True
             self.render_left = False
             self.render_right = False
-            self.render_foot = False
+            self.extra_time_computed = False
+            self.extra_time = 0
 
             # Begin the update loops for timer and prompt
             self.counter = 28800 
+            self.slide_proba = 0.5
             self.label_timer.after(100, self.update_label_timer)
+            self.label_trial.after(5000, self.startUpdate)
             self.canvas.after(100, self.render)
+            
     
     ####################
     ## UPDATE METHODS ##
     ####################
     def update_label_timer(self):
-        return
+        if self.can_update:
+            tt = datetime.fromtimestamp(self.counter)
+            string = tt.strftime("%H:%M:%S")
+            self.label_timer.config(text = string)
+            self.counter += 1
+        if self.trial_index < len(self.trial_labels) and self.can_update:
+            self.label_timer.after(1000,self.update_label_timer)
+
+    def startUpdate(self): 
+        if self.can_update: 
+            self.instructions_label.config(text="Try to get the slider to the left or right side by thinking left or right!")
+            self.update()
 
     def update(self):
     	# Write update rules here
         if self.can_update: 
+            
+            # Return early if no more trials
+            if self.trial_index >= len(self.trial_labels) and self.button_use is None: 
+                self.button_use = tk.Button(self, text="Launch Google Maps", command=self.useApp)
+                self.button_use.pack()
+
+            self.trial_time += 125
+            # Only provide prompts and trial count if the use button is not shown
+            if self.button_use is None: 
+                if self.trial_time >= START_REST_TIME and self.trial_time < BEEP_FINISH_TIME and self.can_play:
+                    # Play sound
+                    pygame.mixer.music.play(loops = 0)
+                    self.can_play = False
+                
+                elif self.trial_time >= BEEP_FINISH_TIME and self.trial_time < ARROW_FINISH_TIME:
+                    # Show arrow
+                    label = self.trial_labels[self.trial_index]
+                    self.can_play = True
+                    if label == 1:
+                        self.render_left = True
+                        self.render_right = False
+                    elif label == 2:
+                        self.render_right = True
+                        self.render_left = False
+                elif self.trial_time >= ARROW_FINISH_TIME and self.trial_time < TRIAL_FINISH_TIME:
+                    # Stop rendering arrow and compute random extra time between trials
+                    self.render_left = False
+                    self.render_right = False
+                    if self.extra_time_computed == False:
+                        self.extra_time = random.randint(0,MAX_EXTRA_TIME)
+                        self.extra_time_computed = True
+                elif self.trial_time >= TRIAL_FINISH_TIME and self.trial_time < TRIAL_BASEEXTRA_TIME + self.extra_time:
+                    # Keep rendering cross
+                    self.render_cross = True
+                elif self.trial_time >= TRIAL_BASEEXTRA_TIME + self.extra_time:
+                    # Update trial info
+                    self.trial_index+=1
+                    self.trial_time = 0
+                    self.render_cross = True
+                    self.extra_time_computed = False
+                    if self.trial_index < len(self.trial_labels):
+                        self.label_trial.config(text='Trial: '+str(self.trial_index+1) + '/' + str(len(self.trial_labels)))
+                    else :
+                        self.label_trial.config(text='NeuroFeedback Completed! Please "Launch Google Maps" to continue')
+
+            self.slide_proba = self.eeg_sampler.getPredictionValue()
             self.label_timer.after(125, self.update)
 
+    def useApp(self):
+        # Launch Google Maps 
+        print("loading browser")
+        webbrowser.open('https://www.google.com/maps/@32.8824001,-117.2401516,3a,75y,350.34h,92.6t/data=!3m6!1e1!3m4!1stk9EAp1VOrQ_dceJZFAYAg!2e0!7i16384!8i8192', new=2)
+        self.button_use.pack_forget()
+        self.label_trial.config(text='Google Maps Launched!')
+        time.sleep(3)
+        print("input starting in: ")
+        time.sleep(1)
+        print("5")
+        time.sleep(1)
+        print("4")
+        time.sleep(1)
+        print("3")
+        click(600, 600)
+        time.sleep(1)
+        print("2")
+        time.sleep(1)
+        print("1")
+        time.sleep(1)
+        print("go!!")
+        
+        # Send commands 
+        self.sendCommands()
+
+    def sendCommands(self):
+        if self.can_update:
+            self.slide_proba = (self.eeg_sampler.getPredictionValue() * 2) - 1
+            perform_google_maps_action(self.slide_proba)
+            self.label_trial.after(250, self.sendCommands)
+
     def render(self):
-        self.canvas.delete('all')
-        # Write elements to render here
-        if self.render_cross == True:
-            bar_loc = self.controller.slide_proba * 240
-            self.canvas.create_line(1000/2-150+30, 250, 1000/2+150-30, 250, width = 4)
-            self.canvas.create_line(500, 150+30, 500, 350-30, width = 4, dash=(4, 4))
-            self.canvas.create_polygon([492-120+bar_loc, 290, 492-120+bar_loc, 210, 508-120+bar_loc, 210, 508-120+bar_loc, 290], fill='grey', tags='slide-bar')
-        self.canvas.after(50, self.render)
+        if self.can_update: 
+            self.canvas.delete('all')
+            # Write elements to render here
+            if self.render_left == True:
+                self.canvas.create_polygon(self.left_arrowhead, fill='#1f1', tags='left')
+            if self.render_right == True:
+                self.canvas.create_polygon(self.right_arrowhead, fill='#1f1', tags='right')
+            if self.render_cross == True:
+                bar_loc = self.slide_proba * 240
+                self.canvas.create_line(1000/2-150+30, 250, 1000/2+150-30, 250, width = 4)
+                self.canvas.create_line(500, 150+30, 500, 350-30, width = 4, dash=(4, 4))
+                self.canvas.create_polygon([492-120+bar_loc, 290, 492-120+bar_loc, 210, 508-120+bar_loc, 210, 508-120+bar_loc, 290], fill='grey', tags='slide-bar')
+            self.canvas.after(100, self.render)
 
     ###################
     ## ABORT METHODS ##
     ###################
     def abort(self):
         if self.can_update: 
+            # Clear the buttons because they will be created again if returned to calibration prompt
+            if self.button_back: 
+                self.button_back.pack_forget()
+            if self.button_monitor: 
+                self.button_monitor.pack_forget()
+            if self.button_use: 
+                self.button_use.pack_forget()
             # End sampling
             self.eeg_sampler.end()
             self.can_update = False
