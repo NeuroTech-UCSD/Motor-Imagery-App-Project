@@ -1,8 +1,8 @@
-# Calibration GUI
-Motor Imagery Prompts for Left, Right, Foot, and Idle. 
+# GUI
+Motor Imagery Prompts for Left and Right, Model Training, NeuroFeedback, and Data Viewer
 
 ## USAGE
-python CalibrationGUI.py 
+python GUI.py 
 - make sure to change LIVE_DATA in EEGRecorder to false if not recording EEG
 - make sure to have a ./data/ folder created
 
@@ -14,7 +14,4 @@ python CalibrationGUI.py
 | N7P | C1 | Left-center channel |
 | N6P | C2 | Right-center channel  |
 | N5P | C4 | Right-most channel |
-| N4P | VEOG | Under left eye |
-| N3P | Left EMG | Left forearm |
-| N2P | Right EMG | Right forearm |
 | SRB | Earclip (left) | Reference |
