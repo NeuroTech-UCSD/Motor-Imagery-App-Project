@@ -25,7 +25,7 @@ This project uses electrodes at the motor cortex and a left ear clip for referen
 ![](./figures/10-20_Electrodes.png)
 
  The headset had to be put together with a bit of creativity due to the remote collaboration of the project. The way we were able to have one person be able to use the headset was by using dry electrodes attached to a velcro strap held in place by hair bands, as shown below. 
-![](./figures/Headset_Photo.jpg)
+![](./figures/Headset_Photo.JPG)
 
 
 ## Calibration Timing
