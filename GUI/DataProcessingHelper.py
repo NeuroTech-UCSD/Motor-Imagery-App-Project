@@ -62,6 +62,7 @@ def getOutputLabelsAndEpochTimes(event_df):
             epoch_times.append(list(current_epoch))
             current_epoch = []
     return np.array(output_labels), np.array(epoch_times)
+
 def getEEGEpochs(epoch_times, eeg_df, eeg_chans, target_num_trials=1000):
     # Slices and generates the epochs in the eeg_df given the epoch_times
     # Input: 
@@ -86,9 +87,6 @@ def getEEGEpochs(epoch_times, eeg_df, eeg_chans, target_num_trials=1000):
         else: 
             print("Warning: Epoch with less than", target_num_trials, "eeg samples")
     return np.array(eeg_epochs)
-
-
-
 
 ## Create DF for each of these, columns are channels, each row is a trial run
 def getDF(epochs, labels, times, chans):
