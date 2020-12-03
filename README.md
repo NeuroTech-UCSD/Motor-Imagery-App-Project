@@ -2,6 +2,7 @@
 MiMap allows patients with paralysis to explore the vast world provided through Google Street View under their own volition. 
 </br></br>
 The system is calibrated to the user through a calibration and neurofeedback phase where the user learns how to produce motor imagery signals by imagining moving their left or right hand. The brain signals are collected through electroencephalography (EEG), used to train a machine learning model, which is then used to predict if the user is thinking to turn left or right or go forward in Google Street View. 
+Project Video: https://youtu.be/TgKobB9tW7M
 
 ## Github Directories
 - [`/GUI`](https://github.com/NeuroTech-UCSD/Motor-Imagery-App-Project/tree/master/GUI) - Files pertaining to actual live data collection. 
